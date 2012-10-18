@@ -8,14 +8,22 @@ class InterpretWithPythonCommand(sublime_plugin.WindowCommand):
 
         edit = view.begin_edit()
 
-        sels = view.sel()
+        # Import
+        for import_me in ['math', 'random']:
+            module = __import__(import_me, globals(), locals(), ['*'])
+            for k in dir(module):
+                locals()[k] = getattr(module, k)
 
         # Interpret forwards
         replaces = []
-        for sel in sels:
+        for sel in view.sel():
             if sel.size() > 0:
                 text = view.substr(sel)
-                evald = self.evaluate(text)
+
+                try:
+                    evald = str(eval(text))
+                except Exception, e:
+                    evald = e.message
                 replaces.append((sel, evald))
 
         # Replace backwards (intention is to later get them to share context)
@@ -23,10 +31,3 @@ class InterpretWithPythonCommand(sublime_plugin.WindowCommand):
             view.replace(edit, sel, evald)
 
         view.end_edit(edit)
-
-    def evaluate(self, text):
-        try:
-            ret = str(eval(text))
-        except Exception, e:
-            ret = e.message
-        return ret
